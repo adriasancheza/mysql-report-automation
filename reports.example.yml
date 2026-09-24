@@ -1,0 +1,57 @@
+# Copy to reports.yml (or point --config at this file) and adjust to your schema.
+# See README.md "Config reference" for the full field list.
+
+database:
+  # Name of the environment variable holding the SQLAlchemy connection URL.
+  # Set it in your .env, e.g. DATABASE_URL=mysql+pymysql://user:pass@host/db
+  url_env: DATABASE_URL
+
+output:
+  directory: output
+
+reports:
+  - name: monthly_sales
+    description: Monthly sales summary by region and product
+    query_file: sql/monthly_sales.sql
+    parameters:
+      start_date: last_month_start
+      end_date: last_month_end
+    sheet:
+      title: Sales
+      freeze_header: true
+      autofilter: true
+      number_formats:
+        revenue: "#,##0.00"
+        units: "#,##0"
+      summary:
+        enabled: true
+        totals: [units, revenue]
+    output:
+      formats: [xlsx]
+    recipients:
+      - sales-team@example.com
+    # cron expression, for documentation / your own scheduler config
+    schedule: "0 7 1 * *"
+
+  - name: daily_orders
+    description: Orders placed yesterday
+    query: |
+      SELECT order_id, customer_name, region, order_date, product, units, revenue
+      FROM orders
+      WHERE order_date = :yesterday
+      ORDER BY order_id
+    parameters:
+      yesterday: yesterday
+    sheet:
+      title: Orders
+      freeze_header: true
+      autofilter: true
+      number_formats:
+        revenue: "#,##0.00"
+      date_formats:
+        order_date: "yyyy-mm-dd"
+    output:
+      formats: [xlsx, csv]
+    recipients:
+      - ops@example.com
+    schedule: "0 6 * * *"
